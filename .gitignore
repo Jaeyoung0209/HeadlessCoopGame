@@ -1,0 +1,21 @@
+.vscode
+.vs*
+*.meta
+Assets/FishNet
+Assets/Plugins
+Assets/ProBuilder Data
+Assets/QuickOutline
+Assets/Settings
+Assets/SimpleToon
+Assets/TutorialInfo
+Assets/UnityTechnologies
+
+Library
+Logs
+obj
+Packages
+UserSettings
+.vsconfig
+
+*.csproj
+*.sln
