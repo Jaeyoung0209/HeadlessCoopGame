@@ -2,7 +2,6 @@ using UnityEngine;
 using FishNet.Object;
 using UnityEngine.Animations.Rigging;
 using System.Collections;
-using FishNet.Demo.AdditiveScenes;
 
 public class PlayerLiftController : NetworkBehaviour
 {
@@ -18,8 +17,10 @@ public class PlayerLiftController : NetworkBehaviour
     [SerializeField] private Transform leftHandGripTarget;
 
     [SerializeField] private float pickupRange = 3f;
-
     [SerializeField] private LayerMask objectLayer;
+    [SerializeField] private float reachDuration = 0.3f;
+
+    private Coroutine ikCoroutine;
 
     public override void OnStartClient()
     {
@@ -56,7 +57,6 @@ public class PlayerLiftController : NetworkBehaviour
 
     private void TryPickup()
     {
-
         Collider closestCollider = null;
         float minDistance = float.MaxValue;
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, pickupRange, objectLayer);
@@ -75,14 +75,14 @@ public class PlayerLiftController : NetworkBehaviour
             }
         }
 
-        if (closestCollider != null) {
+        if (closestCollider != null) 
+        {
             LiftableObject obj = closestCollider.GetComponent<LiftableObject>();
             if (obj != null)
             {
-
                 if (leftHandGripTarget != null && rightHandGripTarget != null)
                 {
-                    StartCoroutine(ReachForObject(obj));
+                    ServerNotifyPickup(obj.GetComponent<NetworkObject>().ObjectId);
                 }
                 
                 heldObject = obj;
@@ -93,9 +93,7 @@ public class PlayerLiftController : NetworkBehaviour
                 }
             }
         }
-
     }
-
 
     private void Drop()
     {
@@ -105,23 +103,95 @@ public class PlayerLiftController : NetworkBehaviour
             EnableCollisionsWithHeldObject();
             heldObject = null;
             cameraSwitcher.canSwitchCamera = true;
-            leftHandIK.weight = 0;
-            rightHandIK.weight = 0;
+            
+            ServerNotifyDrop();
         }
+    }
+
+    [ServerRpc]
+    private void ServerNotifyPickup(int objectId)
+    {
+        ObserversPlayReachAnimation(objectId);
+    }
+
+    [ServerRpc]
+    private void ServerNotifyDrop()
+    {
+        ObserversResetIK();
+    }
+
+    [ObserversRpc]
+    private void ObserversPlayReachAnimation(int objectId)
+    {
+        if (ikCoroutine != null)
+        {
+            StopCoroutine(ikCoroutine);
+        }
+
+        if (NetworkManager.ServerManager.Objects.Spawned.TryGetValue(objectId, out NetworkObject netObj))
+        {
+            LiftableObject obj = netObj.GetComponent<LiftableObject>();
+            if (obj != null)
+            {
+                ikCoroutine = StartCoroutine(ReachForObject(obj));
+            }
+        }
+    }
+
+    [ObserversRpc]
+    private void ObserversResetIK()
+    {
+        if (ikCoroutine != null)
+        {
+            StopCoroutine(ikCoroutine);
+        }
+
+        ikCoroutine = StartCoroutine(AnimateIKToTarget(0f));
     }
 
     private IEnumerator ReachForObject(LiftableObject obj)
     {
         float t = 0f;
+        
         while (t < 1f)
         {
-            t += Time.deltaTime / 0.3f;
-            leftHandIK.weight = Mathf.Lerp(0f, 1f, t);
-            rightHandIK.weight = Mathf.Lerp(0f, 1f, t);
+            t += Time.deltaTime / reachDuration;
+            float currentWeight = Mathf.Lerp(0f, 1f, t);
+            
+            if (leftHandIK != null) leftHandIK.weight = currentWeight;
+            if (rightHandIK != null) rightHandIK.weight = currentWeight;
+            
             yield return null;
         }
-        obj.PickupServerRpc(Owner.ClientId, handTransform);
-        DisableCollisionsWithHeldObject(obj);
+
+        if (leftHandIK != null) leftHandIK.weight = 1f;
+        if (rightHandIK != null) rightHandIK.weight = 1f;
+
+        if (IsOwner)
+        {
+            obj.PickupServerRpc(Owner.ClientId, handTransform);
+            DisableCollisionsWithHeldObject(obj);
+        }
+    }
+
+    private IEnumerator AnimateIKToTarget(float targetWeight)
+    {
+        float startLeft = leftHandIK != null ? leftHandIK.weight : 0f;
+        float startRight = rightHandIK != null ? rightHandIK.weight : 0f;
+        float t = 0f;
+        
+        while (t < 1f)
+        {
+            t += Time.deltaTime / reachDuration;
+            
+            if (leftHandIK != null) leftHandIK.weight = Mathf.Lerp(startLeft, targetWeight, t);
+            if (rightHandIK != null) rightHandIK.weight = Mathf.Lerp(startRight, targetWeight, t);
+            
+            yield return null;
+        }
+
+        if (leftHandIK != null) leftHandIK.weight = targetWeight;
+        if (rightHandIK != null) rightHandIK.weight = targetWeight;
     }
 
     private void DisableCollisionsWithHeldObject(LiftableObject obj)
