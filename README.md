@@ -1,0 +1,1 @@
+4 player horror co-op game where the camera is a carryable object, and all players share the same perspective.
