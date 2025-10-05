@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 613501d2287455444877fdbb4458f748, type: 3}
+  m_Name: StartRoom
+  m_EditorClassIdentifier: 
+  roomName: StartRoom
+  roomType: 0
+  gridDimensions: {x: 2, y: 2}
+  roomPrefab: {fileID: 732581838357889901, guid: 3c77666fa2c79f54181c57c28e935af7, type: 3}
+  doorways:
+  - localPosition: {x: 0, y: -1.5, z: 2}
+    direction: 0
+    width: 2
+    isOptional: 0
+    allowedConnections: 
+  spawnWeight: 1
+  minDistanceFromStart: 0
+  maxAllowedInLevel: -1
+  cannotConnectTo: 

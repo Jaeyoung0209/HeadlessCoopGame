@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 613501d2287455444877fdbb4458f748, type: 3}
+  m_Name: EndRoom
+  m_EditorClassIdentifier: 
+  roomName: EndRoom
+  roomType: 3
+  gridDimensions: {x: 2, y: 2}
+  roomPrefab: {fileID: 720644120504944890, guid: ee3175b5eb82a6649ad8e390831146f7, type: 3}
+  doorways:
+  - localPosition: {x: 0, y: -1.5, z: -2}
+    direction: 1
+    width: 2
+    isOptional: 0
+    allowedConnections: 
+  spawnWeight: 1
+  minDistanceFromStart: 0
+  maxAllowedInLevel: -1
+  cannotConnectTo: 
