@@ -367,9 +367,13 @@ MonoBehaviour:
   startRoomData: {fileID: 11400000, guid: 3934a1d6c8486464589bf42ae592c0ec, type: 2}
   availableRoomData:
   - {fileID: 11400000, guid: 311474e1d60c43348898cbf7e15aff42, type: 2}
-  endRoomData: {fileID: 0}
-  gridCellSize: 10
+  - {fileID: 11400000, guid: 4da1c9f03a0b28845b817d4184cebd5c, type: 2}
+  endRoomData: {fileID: 11400000, guid: 7dbff770d77f24c42adfacecf9e3d650, type: 2}
+  gridCellSize: 1
   maxPlacementAttempts: 50
+  desiredLoopCount: 3
+  maxLoopDistance: 15
+  loopCorridorPrefab: {fileID: 0}
 --- !u!4 &185412753
 Transform:
   m_ObjectHideFlags: 0
