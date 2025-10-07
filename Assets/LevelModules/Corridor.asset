@@ -13,21 +13,13 @@ MonoBehaviour:
   m_Name: Corridor
   m_EditorClassIdentifier: 
   roomName: Corridor
-  roomType: 0
-  gridDimensions: {x: 1, y: 1}
+  roomSize: 1
   roomPrefab: {fileID: 9053563886760313431, guid: 85cd941a46f67094dbe45627d0fd6693, type: 3}
-  doorways:
-  - localPosition: {x: 0, y: -1, z: 1}
-    direction: 0
-    width: 0
-    isOptional: 0
-    allowedConnections: 
-  - localPosition: {x: 0, y: -1, z: -1}
-    direction: 1
-    width: 0
-    isOptional: 0
-    allowedConnections: 
+  hasNorthDoor: 1
+  hasSouthDoor: 1
+  hasEastDoor: 0
+  hasWestDoor: 0
+  dimensions: {x: 0, y: 0}
   spawnWeight: 1
-  minDistanceFromStart: 0
-  maxAllowedInLevel: -1
-  cannotConnectTo: 
+  isStartRoom: 0
+  isEndRoom: 0

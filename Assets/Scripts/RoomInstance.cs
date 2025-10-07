@@ -5,47 +5,47 @@ public class RoomInstance
 {
     public RoomData roomData;
     public GameObject roomObject;
-    public List<DoorwayInstance> doorways = new List<DoorwayInstance>();
-    public int distanceFromStart = 0;
-    public Vector3 position;
-    public Quaternion rotation;
-
-    public RoomInstance(RoomData data, Vector3 pos, Quaternion rot, int distance)
+    public Vector2Int gridPosition;
+    public int rotation; // 0, 90, 180, 270 degrees
+    public Dictionary<DoorDirection, DoorwayInstance> doorways;
+    public int distanceFromStart;
+    
+    public RoomInstance(RoomData data, Vector2Int gridPos, int rot, int distance)
     {
         roomData = data;
-        position = pos;
+        gridPosition = gridPos;
         rotation = rot;
         distanceFromStart = distance;
-
-        for (int i = 0; i < data.doorways.Count; i++)
+        doorways = new Dictionary<DoorDirection, DoorwayInstance>();
+        
+        // Create doorway instances for available doors (with rotation applied)
+        foreach (var dir in data.GetAvailableDoors())
         {
-            DoorwayInstance doorway = new DoorwayInstance(data.doorways[i], this, i);
-            doorways.Add(doorway);
+            DoorDirection rotatedDir = RotateDirection(dir, rotation);
+            doorways[rotatedDir] = new DoorwayInstance(this, rotatedDir, dir);
         }
     }
-
-    public Vector3 GetDoorwayWorldPosition(int doorwayIndex)
+    
+    public Vector3 GetWorldPosition(float gridCellSize)
     {
-        Vector3 localPos = roomData.doorways[doorwayIndex].localPosition;
-        return position + rotation * localPos;
+        return new Vector3(gridPosition.x * gridCellSize, 0, gridPosition.y * gridCellSize);
     }
-
-    public Quaternion GetDoorwayWorldRotation(int doorwayIndex)
+    
+    public Quaternion GetWorldRotation()
     {
-        DoorDirection dir = roomData.doorways[doorwayIndex].direction;
-        int angle = DirectionToAngle(dir);
-        return rotation * Quaternion.Euler(0, angle, 0);
+        return Quaternion.Euler(0, rotation, 0);
     }
-
-    private int DirectionToAngle(DoorDirection dir)
+    
+    public bool HasDoor(DoorDirection dir)
     {
-        switch (dir)
-        {
-            case DoorDirection.North: return 0;
-            case DoorDirection.East: return 90;
-            case DoorDirection.South: return 180;
-            case DoorDirection.West: return 270;
-            default: return 0;
-        }
+        return doorways.ContainsKey(dir);
+    }
+    
+    // Rotate a direction by the given angle
+    private DoorDirection RotateDirection(DoorDirection dir, int angle)
+    {
+        int newAngle = ((int)dir + angle) % 360;
+        if (newAngle < 0) newAngle += 360;
+        return (DoorDirection)newAngle;
     }
 }

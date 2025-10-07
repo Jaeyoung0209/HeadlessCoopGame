@@ -3,66 +3,39 @@ using UnityEngine;
 
 public class DoorwayInstance
 {
-    public DoorwayData data;
     public RoomInstance parentRoom;
-    public int doorwayIndex;
+    public DoorDirection worldDirection;
+    public DoorDirection localDirection;
     public bool isConnected = false;
     public DoorwayInstance connectedTo;
     
-    public DoorwayInstance(DoorwayData doorwayData, RoomInstance room, int index)
+    public DoorwayInstance(RoomInstance room, DoorDirection worldDir, DoorDirection localDir)
     {
-        data = doorwayData;
         parentRoom = room;
-        doorwayIndex = index;
+        worldDirection = worldDir;
+        localDirection = localDir;
     }
     
-    public Vector3 GetWorldPosition()
+    public Vector2Int GetAdjacentGridPosition()
     {
-        return parentRoom.GetDoorwayWorldPosition(doorwayIndex);
+        Vector2Int offset = GetDirectionOffset(worldDirection);
+        return parentRoom.gridPosition + offset;
     }
     
-    public Quaternion GetWorldRotation()
+    public DoorDirection GetOppositeDirection()
     {
-        return parentRoom.GetDoorwayWorldRotation(doorwayIndex);
+        return (DoorDirection)(((int)worldDirection + 180) % 360);
     }
     
-    public DoorDirection GetWorldDirection()
-    {
-        int localAngle = DirectionToAngle(data.direction);
-
-        float roomYRotation = parentRoom.rotation.eulerAngles.y;
-        int totalAngle = (localAngle + Mathf.RoundToInt(roomYRotation)) % 360;
-
-        if (totalAngle < 0) totalAngle += 360;
-
-        return AngleToDirection(totalAngle);
-    }
-    
-    private int DirectionToAngle(DoorDirection dir)
+    private Vector2Int GetDirectionOffset(DoorDirection dir)
     {
         switch (dir)
         {
-            case DoorDirection.North: return 0;
-            case DoorDirection.East: return 90;
-            case DoorDirection.South: return 180;
-            case DoorDirection.West: return 270;
-            default: return 0;
-        }
-    }
-    
-    private DoorDirection AngleToDirection(int angle)
-    {
-        angle = Mathf.RoundToInt(angle / 90f) * 90;
-        angle = angle % 360;
-        if (angle < 0) angle += 360;
-        
-        switch (angle)
-        {
-            case 0: return DoorDirection.North;
-            case 90: return DoorDirection.East;
-            case 180: return DoorDirection.South;
-            case 270: return DoorDirection.West;
-            default: return DoorDirection.North;
+            case DoorDirection.North: return new Vector2Int(0, 1);
+            case DoorDirection.South: return new Vector2Int(0, -1);
+            case DoorDirection.East: return new Vector2Int(1, 0);
+            case DoorDirection.West: return new Vector2Int(-1, 0);
+            default: return Vector2Int.zero;
         }
     }
 }

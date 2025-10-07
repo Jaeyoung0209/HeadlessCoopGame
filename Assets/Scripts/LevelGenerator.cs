@@ -3,272 +3,372 @@ using UnityEngine;
 
 public class LevelGenerator : MonoBehaviour
 {
-    public int maxRooms = 15;
+    public int minBigRooms = 5;
+    public int maxBigRooms = 10;
     public int seed = 0;
     public bool useRandomSeed = true;
 
     public RoomData startRoomData;
-    public List<RoomData> availableRoomData;
+    public List<RoomData> bigRoomData;
+    public List<RoomData> smallRoomData;
     public RoomData endRoomData;
 
     public float gridCellSize = 10f;
-    public int maxPlacementAttempts = 50;
-    public int desiredLoopCount = 3;
-    public float maxLoopDistance = 15f;
-    public RoomData loopCorridorPrefab;
 
-    private List<RoomInstance> spawnedRooms = new List<RoomInstance>();
+    public float smallRoomChance = 0.6f;
+    public int maxConsecutiveSmallRooms = 3;
+    
+    public bool allowRoomRotation = true;
+    
+    private Dictionary<Vector2Int, RoomInstance> grid = new Dictionary<Vector2Int, RoomInstance>();
+    private List<RoomInstance> allRooms = new List<RoomInstance>();
     private Queue<DoorwayInstance> availableDoorways = new Queue<DoorwayInstance>();
-    private Dictionary<RoomData, int> roomCountTracker = new Dictionary<RoomData, int>();
     private System.Random rng;
-
+    
     void Start()
     {
         GenerateLevel();
     }
-
+    
     public void GenerateLevel()
     {
         ClearLevel();
-
+        
         if (useRandomSeed)
             seed = Random.Range(0, 999999);
-
+        
         rng = new System.Random(seed);
-        roomCountTracker.Clear();
-
         Debug.Log($"Generating Level with seed: {seed}");
 
+        SpawnStartRoom();
+        GenerateBigRooms();
+        FillSmallRoomsOrSealDoors();
+        
+        if (endRoomData != null)
+        {
+            PlaceEndRoom();
+        }
+        
+        Debug.Log($"Generated {allRooms.Count} total rooms ({CountBigRooms()} big, {CountSmallRooms()} small)");
+    }
+    
+    void SpawnStartRoom()
+    {
         if (startRoomData == null)
         {
             Debug.LogError("Start room data not assigned!");
             return;
         }
+        
+        RoomInstance startRoom = new RoomInstance(startRoomData, Vector2Int.zero, 0, 0);
+        PlaceRoom(startRoom);
 
-        SpawnStartRoom();
-
-        int roomCount = 1;
-        int attemptCount = 0;
-
-        while (roomCount < maxRooms && availableDoorways.Count > 0 && attemptCount < maxPlacementAttempts * maxRooms)
-        {
-            attemptCount++;
-
-            if (availableDoorways.Count == 0)
-                break;
-
-            DoorwayInstance currentDoorway = availableDoorways.Dequeue();
-
-            if (currentDoorway.isConnected)
-                continue;
-
-            RoomData selectedRoom = SelectRoomData(currentDoorway, roomCount);
-
-            if (selectedRoom == null)
-            {
-                if (currentDoorway.data.isOptional)
-                    currentDoorway.isConnected = true;
-                continue;
-            }
-
-            if (TryPlaceRoom(selectedRoom, currentDoorway, roomCount))
-            {
-                roomCount++;
-
-                if (!roomCountTracker.ContainsKey(selectedRoom))
-                    roomCountTracker[selectedRoom] = 0;
-                roomCountTracker[selectedRoom]++;
-            }
-        }
-
-        Debug.Log($"Generated {roomCount} rooms in {attemptCount} attempts");
-
-    }
-
-    void SpawnStartRoom()
-    {
-        RoomInstance room = new RoomInstance(startRoomData, Vector3.zero, Quaternion.identity, 0);
-        GameObject roomObj = Instantiate(startRoomData.roomPrefab, Vector3.zero, Quaternion.identity, transform);
-        room.roomObject = roomObj;
-
-        spawnedRooms.Add(room);
-
-        foreach (var doorway in room.doorways)
+        foreach (var doorway in startRoom.doorways.Values)
         {
             availableDoorways.Enqueue(doorway);
         }
     }
-
-    RoomData SelectRoomData(DoorwayInstance connectingDoorway, int currentRoomCount)
+    
+    void GenerateBigRooms()
     {
-        if (currentRoomCount >= maxRooms - 1 && endRoomData != null)
+        int bigRoomsPlaced = 1;
+        int targetBigRooms = rng.Next(minBigRooms, maxBigRooms + 1);
+        int attempts = 0;
+        int maxAttempts = targetBigRooms * 50;
+        
+        while (bigRoomsPlaced < targetBigRooms && availableDoorways.Count > 0 && attempts < maxAttempts)
         {
-            if (IsRoomDataValid(endRoomData, connectingDoorway))
-                return endRoomData;
-        }
-
-        List<RoomData> validRooms = new List<RoomData>();
-        List<float> weights = new List<float>();
-
-        foreach (var roomData in availableRoomData)
-        {
-            if (!IsRoomDataValid(roomData, connectingDoorway))
+            attempts++;
+            
+            DoorwayInstance currentDoorway = availableDoorways.Dequeue();
+            
+            if (currentDoorway.isConnected)
                 continue;
 
-            if (roomData.maxAllowedInLevel > 0)
+            RoomData selectedRoom = SelectWeightedRandom(bigRoomData);
+            if (selectedRoom == null)
+                continue;
+
+            if (TryPlaceBigRoom(selectedRoom, currentDoorway))
             {
-                int currentCount = roomCountTracker.ContainsKey(roomData) ? roomCountTracker[roomData] : 0;
-                if (currentCount >= roomData.maxAllowedInLevel)
-                    continue;
+                bigRoomsPlaced++;
             }
-
-            validRooms.Add(roomData);
-            weights.Add(roomData.spawnWeight);
         }
-
-        if (validRooms.Count == 0)
-            return null;
-
-        return GetWeightedRandom(validRooms, weights);
+        
+        Debug.Log($"Placed {bigRoomsPlaced} big rooms in {attempts} attempts");
     }
-
-    bool IsRoomDataValid(RoomData roomData, DoorwayInstance connectingDoorway)
+    
+    bool TryPlaceBigRoom(RoomData roomData, DoorwayInstance connectToDoorway)
     {
-        if (roomData == null || roomData.roomPrefab == null)
+        Vector2Int targetGridPos = connectToDoorway.GetAdjacentGridPosition();
+
+        if (grid.ContainsKey(targetGridPos))
             return false;
 
-        if (connectingDoorway.parentRoom.distanceFromStart < roomData.minDistanceFromStart)
-            return false;
+        DoorDirection requiredWorldDirection = connectToDoorway.GetOppositeDirection();
 
-        if (roomData.cannotConnectTo.Contains(connectingDoorway.parentRoom.roomData.roomType))
-            return false;
+        List<int> rotations = allowRoomRotation ? 
+            new List<int> { 0, 90, 180, 270 } : 
+            new List<int> { 0 };
 
-        if (connectingDoorway.data.allowedConnections.Count > 0)
+        ShuffleList(rotations);
+        
+        foreach (int rotation in rotations)
         {
-            if (!connectingDoorway.data.allowedConnections.Contains(roomData.roomType))
-                return false;
-        }
-
-        return true;
-    }
-
-    bool TryPlaceRoom(RoomData roomData, DoorwayInstance connectToDoorway, int distanceFromStart)
-    {
-        List<DoorwayData> doorways = new List<DoorwayData>(roomData.doorways);
-        ShuffleList(doorways);
-
-        foreach (var doorwayData in doorways)
-        {
-            DoorDirection connectWorldDir = connectToDoorway.GetWorldDirection();
-
-            Quaternion rotation = CalculateRoomRotation(connectWorldDir, doorwayData.direction);
-
-            Vector3 rotatedDoorwayPos = rotation * doorwayData.localPosition;
-            Vector3 roomPosition = connectToDoorway.GetWorldPosition() - rotatedDoorwayPos;
-
-            if (IsPositionValid(roomPosition, rotation, roomData))
+            if (RoomHasDoorInDirectionWithRotation(roomData, requiredWorldDirection, rotation))
             {
-                RoomInstance room = new RoomInstance(roomData, roomPosition, rotation, distanceFromStart);
-
-                GameObject roomObj = Instantiate(roomData.roomPrefab, roomPosition, rotation, transform);
-                room.roomObject = roomObj;
-
-                spawnedRooms.Add(room);
-
-                DoorwayInstance newDoorway = room.doorways[roomData.doorways.IndexOf(doorwayData)];
-                connectToDoorway.isConnected = true;
-                connectToDoorway.connectedTo = newDoorway;
-                newDoorway.isConnected = true;
-                newDoorway.connectedTo = connectToDoorway;
-
-                foreach (var doorway in room.doorways)
+                int distance = connectToDoorway.parentRoom.distanceFromStart + 1;
+                RoomInstance newRoom = new RoomInstance(roomData, targetGridPos, rotation, distance);
+                PlaceRoom(newRoom);
+                
+                DoorwayInstance newDoorway = newRoom.doorways[requiredWorldDirection];
+                ConnectDoorways(connectToDoorway, newDoorway);
+                
+                foreach (var doorway in newRoom.doorways.Values)
                 {
                     if (!doorway.isConnected)
                     {
                         availableDoorways.Enqueue(doorway);
                     }
                 }
-
+                
                 return true;
             }
         }
-
+        
         return false;
     }
-
-    Quaternion CalculateRoomRotation(DoorDirection connectDir, DoorDirection newRoomDir)
+    
+    bool RoomHasDoorInDirectionWithRotation(RoomData roomData, DoorDirection targetWorldDir, int rotation)
     {
-        int connectAngle = DirectionToAngle(connectDir);
-        int newRoomAngle = DirectionToAngle(newRoomDir);
-        int targetAngle = (connectAngle + 180) % 360;
-        int rotationNeeded = targetAngle - newRoomAngle;
-
-        return Quaternion.Euler(0, rotationNeeded, 0);
+        int targetLocalAngle = ((int)targetWorldDir - rotation) % 360;
+        if (targetLocalAngle < 0) targetLocalAngle += 360;
+        
+        DoorDirection targetLocalDir = (DoorDirection)targetLocalAngle;
+        
+        return HasDoorInDirection(roomData, targetLocalDir);
     }
-
-    int DirectionToAngle(DoorDirection dir)
+    
+    void FillSmallRoomsOrSealDoors()
     {
-        switch (dir)
+        List<DoorwayInstance> unconnectedDoorways = new List<DoorwayInstance>();
+        
+        foreach (var room in allRooms)
         {
-            case DoorDirection.North: return 0;
-            case DoorDirection.East: return 90;
-            case DoorDirection.South: return 180;
-            case DoorDirection.West: return 270;
-            default: return 0;
-        }
-    }
-
-    bool IsPositionValid(Vector3 position, Quaternion rotation, RoomData newRoomData)
-    {
-        // Calculate bounds for the new room
-        Vector3 newRoomSize = new Vector3(
-            newRoomData.gridDimensions.x * gridCellSize,
-            gridCellSize, // Height (arbitrary, can be adjusted)
-            newRoomData.gridDimensions.y * gridCellSize
-        );
-
-        Bounds newBounds = new Bounds(position, newRoomSize);
-
-        foreach (var existingRoom in spawnedRooms)
-        {
-            Vector3 existingSize = new Vector3(
-                existingRoom.roomData.gridDimensions.x * gridCellSize,
-                gridCellSize,
-                existingRoom.roomData.gridDimensions.y * gridCellSize
-            );
-
-            Bounds existingBounds = new Bounds(existingRoom.position, existingSize);
-
-            existingBounds.Expand(0.5f);
-
-            if (newBounds.Intersects(existingBounds))
+            if (room.roomData.roomSize == RoomSize.Big)
             {
-                return false;
+                foreach (var doorway in room.doorways.Values)
+                {
+                    if (!doorway.isConnected)
+                    {
+                        unconnectedDoorways.Add(doorway);
+                    }
+                }
             }
         }
 
-        return true;
-    }
-
-    RoomData GetWeightedRandom(List<RoomData> items, List<float> weights)
-    {
-        float totalWeight = 0;
-        foreach (float w in weights)
-            totalWeight += w;
-
-        float randomValue = (float)rng.NextDouble() * totalWeight;
-        float cumulative = 0;
-
-        for (int i = 0; i < items.Count; i++)
+        ShuffleList(unconnectedDoorways);
+        
+        foreach (var doorway in unconnectedDoorways)
         {
-            cumulative += weights[i];
-            if (randomValue <= cumulative)
-                return items[i];
+            if (doorway.isConnected)
+                continue;
+
+            if (rng.NextDouble() < smallRoomChance)
+            {
+                TryAddSmallRoomChain(doorway);
+            }
+            else
+            {
+                SealDoorway(doorway);
+            }
+        }
+    }
+    
+    void TryAddSmallRoomChain(DoorwayInstance startDoorway)
+    {
+        DoorwayInstance currentDoorway = startDoorway;
+        int smallRoomsInChain = 0;
+        
+        while (smallRoomsInChain < maxConsecutiveSmallRooms && !currentDoorway.isConnected)
+        {
+            RoomData selectedSmallRoom = SelectWeightedRandom(smallRoomData);
+            if (selectedSmallRoom == null)
+                break;
+
+            Vector2Int targetGridPos = currentDoorway.GetAdjacentGridPosition();
+            
+            if (grid.ContainsKey(targetGridPos))
+                break;
+
+            DoorDirection requiredWorldDirection = currentDoorway.GetOppositeDirection();
+
+            List<int> rotations = allowRoomRotation ? 
+                new List<int> { 0, 90, 180, 270 } : 
+                new List<int> { 0 };
+            
+            ShuffleList(rotations);
+            
+            bool placed = false;
+            foreach (int rotation in rotations)
+            {
+                if (RoomHasDoorInDirectionWithRotation(selectedSmallRoom, requiredWorldDirection, rotation))
+                {
+                    int distance = currentDoorway.parentRoom.distanceFromStart + 1;
+                    RoomInstance smallRoom = new RoomInstance(selectedSmallRoom, targetGridPos, rotation, distance);
+                    PlaceRoom(smallRoom);
+
+                    DoorwayInstance smallRoomDoorway = smallRoom.doorways[requiredWorldDirection];
+                    ConnectDoorways(currentDoorway, smallRoomDoorway);
+                    
+                    smallRoomsInChain++;
+                    placed = true;
+
+                    DoorwayInstance nextDoorway = null;
+                    foreach (var doorway in smallRoom.doorways.Values)
+                    {
+                        if (!doorway.isConnected)
+                        {
+                            nextDoorway = doorway;
+                            break;
+                        }
+                    }
+                    
+                    if (nextDoorway == null)
+                    {
+                        return;
+                    }
+                    
+                    currentDoorway = nextDoorway;
+                    break;
+                }
+            }
+            
+            if (!placed)
+                break;
         }
 
-        return items[items.Count - 1];
+        if (currentDoorway != null && !currentDoorway.isConnected)
+        {
+            SealDoorway(currentDoorway);
+        }
+    }
+    
+    void PlaceEndRoom()
+    {
+        RoomInstance furthestRoom = null;
+        int maxDistance = 0;
+        
+        foreach (var room in allRooms)
+        {
+            if (room.roomData.roomSize == RoomSize.Big && room.distanceFromStart > maxDistance)
+            {
+                maxDistance = room.distanceFromStart;
+                furthestRoom = room;
+            }
+        }
+        
+        if (furthestRoom == null)
+            return;
+
+        DoorwayInstance doorwayForEnd = null;
+        foreach (var doorway in furthestRoom.doorways.Values)
+        {
+            if (!doorway.isConnected)
+            {
+                doorwayForEnd = doorway;
+                break;
+            }
+        }
+        
+        if (doorwayForEnd == null)
+            return;
+        
+        Vector2Int targetGridPos = doorwayForEnd.GetAdjacentGridPosition();
+        
+        if (grid.ContainsKey(targetGridPos))
+            return;
+        
+        DoorDirection requiredWorldDirection = doorwayForEnd.GetOppositeDirection();
+        
+        List<int> rotations = allowRoomRotation ? 
+            new List<int> { 0, 90, 180, 270 } : 
+            new List<int> { 0 };
+        
+        foreach (int rotation in rotations)
+        {
+            if (RoomHasDoorInDirectionWithRotation(endRoomData, requiredWorldDirection, rotation))
+            {
+                RoomInstance endRoom = new RoomInstance(endRoomData, targetGridPos, rotation, maxDistance + 1);
+                PlaceRoom(endRoom);
+                
+                DoorwayInstance endDoorway = endRoom.doorways[requiredWorldDirection];
+                ConnectDoorways(doorwayForEnd, endDoorway);
+                
+                Debug.Log($"Placed end room at distance {endRoom.distanceFromStart}");
+                return;
+            }
+        }
+    }
+    
+    void PlaceRoom(RoomInstance room)
+    {
+        grid[room.gridPosition] = room;
+        allRooms.Add(room);
+        
+        Vector3 worldPos = room.GetWorldPosition(gridCellSize);
+        Quaternion worldRot = room.GetWorldRotation();
+        GameObject roomObj = Instantiate(room.roomData.roomPrefab, worldPos, worldRot, transform);
+        room.roomObject = roomObj;
+    }
+    
+    void ConnectDoorways(DoorwayInstance d1, DoorwayInstance d2)
+    {
+        d1.isConnected = true;
+        d1.connectedTo = d2;
+        d2.isConnected = true;
+        d2.connectedTo = d1;
     }
 
+    void SealDoorway(DoorwayInstance doorway)
+    {
+        doorway.isConnected = true;
+    }
+    
+    bool HasDoorInDirection(RoomData roomData, DoorDirection direction)
+    {
+        switch (direction)
+        {
+            case DoorDirection.North: return roomData.hasNorthDoor;
+            case DoorDirection.South: return roomData.hasSouthDoor;
+            case DoorDirection.East: return roomData.hasEastDoor;
+            case DoorDirection.West: return roomData.hasWestDoor;
+            default: return false;
+        }
+    }
+    
+    RoomData SelectWeightedRandom(List<RoomData> rooms)
+    {
+        if (rooms == null || rooms.Count == 0)
+            return null;
+        
+        float totalWeight = 0;
+        foreach (var room in rooms)
+            totalWeight += room.spawnWeight;
+        
+        float randomValue = (float)rng.NextDouble() * totalWeight;
+        float cumulative = 0;
+        
+        foreach (var room in rooms)
+        {
+            cumulative += room.spawnWeight;
+            if (randomValue <= cumulative)
+                return room;
+        }
+        
+        return rooms[rooms.Count - 1];
+    }
+    
     void ShuffleList<T>(List<T> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
@@ -279,79 +379,39 @@ public class LevelGenerator : MonoBehaviour
             list[j] = temp;
         }
     }
-
-    bool TryConnectDoorwaysWithCorridor(DoorwayInstance d1, DoorwayInstance d2)
+    
+    int CountBigRooms()
     {
-        Vector3 pos1 = d1.GetWorldPosition();
-        Vector3 pos2 = d2.GetWorldPosition();
-
-        float distance = Vector3.Distance(pos1, pos2);
-
-        if (distance > maxLoopDistance || distance < gridCellSize * 1.5f)
-            return false;
-
-        Vector3 dir1 = d1.GetWorldRotation() * Vector3.forward;
-        Vector3 dir2 = d2.GetWorldRotation() * Vector3.forward;
-        Vector3 between = (pos2 - pos1).normalized;
-
-        float dot1 = Vector3.Dot(dir1, between);
-        float dot2 = Vector3.Dot(dir2, -between);
-
-        if (dot1 < 0.5f || dot2 < 0.5f)
-            return false;
-
-        if (loopCorridorPrefab != null)
+        int count = 0;
+        foreach (var room in allRooms)
         {
-            Vector3 midpoint = (pos1 + pos2) * 0.5f;
-            Vector3 direction = (pos2 - pos1).normalized;
-            Quaternion rotation = Quaternion.LookRotation(direction);
-
-            if (!IsPositionValid(midpoint, rotation, loopCorridorPrefab))
-                return false;
-
-            RoomInstance corridor = new RoomInstance(loopCorridorPrefab, midpoint, rotation,
-                Mathf.Max(d1.parentRoom.distanceFromStart, d2.parentRoom.distanceFromStart) + 1);
-
-            GameObject corridorObj = Instantiate(loopCorridorPrefab.roomPrefab, midpoint, rotation, transform);
-            corridor.roomObject = corridorObj;
-
-            spawnedRooms.Add(corridor);
-
-            d1.isConnected = true;
-            d2.isConnected = true;
-
-            if (corridor.doorways.Count >= 2)
-            {
-                corridor.doorways[0].isConnected = true;
-                corridor.doorways[1].isConnected = true;
-
-                d1.connectedTo = corridor.doorways[0];
-                corridor.doorways[0].connectedTo = d1;
-
-                d2.connectedTo = corridor.doorways[1];
-                corridor.doorways[1].connectedTo = d2;
-            }
-
-            return true;
+            if (room.roomData.roomSize == RoomSize.Big)
+                count++;
         }
-        else
-        {
-            d1.isConnected = true;
-            d2.isConnected = true;
-            d1.connectedTo = d2;
-            d2.connectedTo = d1;
-            return true;
-        }
+        return count;
     }
-
+    
+    int CountSmallRooms()
+    {
+        int count = 0;
+        foreach (var room in allRooms)
+        {
+            if (room.roomData.roomSize == RoomSize.Small)
+                count++;
+        }
+        return count;
+    }
+    
+    [ContextMenu("Clear Level")]
     void ClearLevel()
     {
         foreach (Transform child in transform)
         {
             DestroyImmediate(child.gameObject);
         }
-
-        spawnedRooms.Clear();
+        
+        grid.Clear();
+        allRooms.Clear();
         availableDoorways.Clear();
     }
 }

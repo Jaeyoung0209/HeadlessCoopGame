@@ -1,21 +1,41 @@
 using System.Collections.Generic;
 using UnityEngine;
-
-[CreateAssetMenu(fileName = "RoomData", menuName = "Scriptable Objects/RoomData")]
+[CreateAssetMenu(fileName = "New Room Data", menuName = "Level/Room Data")]
 public class RoomData : ScriptableObject
 {
     public string roomName;
-    public RoomType roomType;
-    public Vector2Int gridDimensions = new Vector2Int(1, 1);
+    public RoomSize roomSize;
     public GameObject roomPrefab;
-    public List<DoorwayData> doorways = new List<DoorwayData>();
-    
+    public bool hasNorthDoor = false;
+    public bool hasSouthDoor = false;
+    public bool hasEastDoor = false;
+    public bool hasWestDoor = false;
+    public Vector2 dimensions;
+
     [Range(0f, 1f)]
     public float spawnWeight = 1f;
-    public int minDistanceFromStart = 0;
-    public int maxAllowedInLevel = -1;
-    
-    public List<RoomType> cannotConnectTo = new List<RoomType>();
+    public bool isStartRoom = false;
+    public bool isEndRoom = false;
+
+    public List<DoorDirection> GetAvailableDoors()
+    {
+        List<DoorDirection> doors = new List<DoorDirection>();
+        if (hasNorthDoor) doors.Add(DoorDirection.North);
+        if (hasEastDoor) doors.Add(DoorDirection.East);
+        if (hasSouthDoor) doors.Add(DoorDirection.South);
+        if (hasWestDoor) doors.Add(DoorDirection.West);
+        return doors;
+    }
+
+    public int GetDoorCount()
+    {
+        int count = 0;
+        if (hasNorthDoor) count++;
+        if (hasSouthDoor) count++;
+        if (hasEastDoor) count++;
+        if (hasWestDoor) count++;
+        return count;
+    }
 }
 
 [System.Serializable]
@@ -37,10 +57,16 @@ public enum RoomType
     End
 }
 
+public enum RoomSize
+{
+    Big,
+    Small
+}
+
 public enum DoorDirection
 {
-    North,
-    South,
-    East,
-    West
+    North = 0,
+    East = 90,
+    South = 180,
+    West = 270
 }
