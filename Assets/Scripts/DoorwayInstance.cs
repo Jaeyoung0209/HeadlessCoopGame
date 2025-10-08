@@ -26,6 +26,17 @@ public class DoorwayInstance
     {
         return (DoorDirection)(((int)worldDirection + 180) % 360);
     }
+
+    public Vector3 GetWorldPosition(float gridCellSize)
+    {
+        Vector3 localPos = parentRoom.roomData.GetDoorLocalPosition(localDirection);
+
+        Quaternion rotation = parentRoom.GetWorldRotation();
+        Vector3 rotatedLocalPos = rotation * localPos;
+
+        Vector3 roomWorldPos = parentRoom.GetWorldPosition(gridCellSize);
+        return roomWorldPos + rotatedLocalPos;
+    }
     
     private Vector2Int GetDirectionOffset(DoorDirection dir)
     {

@@ -15,11 +15,15 @@ MonoBehaviour:
   roomName: EndRoom
   roomSize: 0
   roomPrefab: {fileID: 720644120504944890, guid: ee3175b5eb82a6649ad8e390831146f7, type: 3}
+  roomDimensions: {x: 4, y: 4}
+  northDoorOffset: 0
+  southDoorOffset: 0
+  eastDoorOffset: 0
+  westDoorOffset: 0
   hasNorthDoor: 0
   hasSouthDoor: 1
   hasEastDoor: 0
   hasWestDoor: 0
-  dimensions: {x: 0, y: 0}
   spawnWeight: 1
   isStartRoom: 0
   isEndRoom: 1

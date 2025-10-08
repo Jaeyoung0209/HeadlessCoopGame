@@ -1,19 +1,28 @@
 using System.Collections.Generic;
 using UnityEngine;
-[CreateAssetMenu(fileName = "New Room Data", menuName = "Level/Room Data")]
+
+[CreateAssetMenu(fileName = "New Room Data", menuName = "Dungeon/Room Data")]
 public class RoomData : ScriptableObject
 {
     public string roomName;
     public RoomSize roomSize;
     public GameObject roomPrefab;
+
+    public Vector2 roomDimensions = new Vector2(10f, 10f); // Width (X) and Depth (Z) in Unity units
+    
+    public float northDoorOffset = 0f;
+    public float southDoorOffset = 0f;
+    public float eastDoorOffset = 0f;
+    public float westDoorOffset = 0f;
+
     public bool hasNorthDoor = false;
     public bool hasSouthDoor = false;
     public bool hasEastDoor = false;
     public bool hasWestDoor = false;
-    public Vector2 dimensions;
 
     [Range(0f, 1f)]
     public float spawnWeight = 1f;
+
     public bool isStartRoom = false;
     public bool isEndRoom = false;
 
@@ -26,7 +35,7 @@ public class RoomData : ScriptableObject
         if (hasWestDoor) doors.Add(DoorDirection.West);
         return doors;
     }
-
+    
     public int GetDoorCount()
     {
         int count = 0;
@@ -36,25 +45,26 @@ public class RoomData : ScriptableObject
         if (hasWestDoor) count++;
         return count;
     }
-}
-
-[System.Serializable]
-public class DoorwayData
-{
-    public Vector3 localPosition;
-    public DoorDirection direction;
-    public float width = 2f;
-
-    public bool isOptional = false;
-    public List<RoomType> allowedConnections = new List<RoomType>();
-}
-
-public enum RoomType
-{
-    Start,
-    Corridor,
-    Standard,
-    End
+    
+    public Vector3 GetDoorLocalPosition(DoorDirection direction)
+    {
+        float halfWidth = roomDimensions.x * 0.5f;
+        float halfDepth = roomDimensions.y * 0.5f;
+        
+        switch (direction)
+        {
+            case DoorDirection.North: 
+                return new Vector3(northDoorOffset, 0, halfDepth);
+            case DoorDirection.South: 
+                return new Vector3(southDoorOffset, 0, -halfDepth);
+            case DoorDirection.East: 
+                return new Vector3(halfWidth, 0, eastDoorOffset);
+            case DoorDirection.West: 
+                return new Vector3(-halfWidth, 0, westDoorOffset);
+            default: 
+                return Vector3.zero;
+        }
+    }
 }
 
 public enum RoomSize

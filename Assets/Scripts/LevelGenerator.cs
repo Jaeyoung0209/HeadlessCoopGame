@@ -16,8 +16,8 @@ public class LevelGenerator : MonoBehaviour
     public float gridCellSize = 10f;
 
     public float smallRoomChance = 0.6f;
-    public int maxConsecutiveSmallRooms = 3;
-    
+    public int maxConsecutiveSmallRooms = 2;
+    public float continueChainChance = 0.3f;
     public bool allowRoomRotation = true;
     
     private Dictionary<Vector2Int, RoomInstance> grid = new Dictionary<Vector2Int, RoomInstance>();
@@ -30,6 +30,7 @@ public class LevelGenerator : MonoBehaviour
         GenerateLevel();
     }
     
+    [ContextMenu("Generate New Level")]
     public void GenerateLevel()
     {
         ClearLevel();
@@ -43,7 +44,7 @@ public class LevelGenerator : MonoBehaviour
         SpawnStartRoom();
         GenerateBigRooms();
         FillSmallRoomsOrSealDoors();
-        
+
         if (endRoomData != null)
         {
             PlaceEndRoom();
@@ -192,6 +193,12 @@ public class LevelGenerator : MonoBehaviour
         
         while (smallRoomsInChain < maxConsecutiveSmallRooms && !currentDoorway.isConnected)
         {
+            if (smallRoomsInChain > 0 && rng.NextDouble() > continueChainChance)
+            {
+                SealDoorway(currentDoorway);
+                return;
+            }
+
             RoomData selectedSmallRoom = SelectWeightedRandom(smallRoomData);
             if (selectedSmallRoom == null)
                 break;
@@ -216,6 +223,13 @@ public class LevelGenerator : MonoBehaviour
                 {
                     int distance = currentDoorway.parentRoom.distanceFromStart + 1;
                     RoomInstance smallRoom = new RoomInstance(selectedSmallRoom, targetGridPos, rotation, distance);
+
+                    Vector3 targetDoorPos = currentDoorway.GetWorldPosition(gridCellSize);
+                    Vector3 smallRoomDoorPos = smallRoom.doorways[requiredWorldDirection].GetWorldPosition(gridCellSize);
+                    Vector3 offset = targetDoorPos - smallRoomDoorPos;
+
+                    smallRoom.positionOffset = offset;
+                    
                     PlaceRoom(smallRoom);
 
                     DoorwayInstance smallRoomDoorway = smallRoom.doorways[requiredWorldDirection];
@@ -283,14 +297,14 @@ public class LevelGenerator : MonoBehaviour
         
         if (doorwayForEnd == null)
             return;
-        
+
         Vector2Int targetGridPos = doorwayForEnd.GetAdjacentGridPosition();
         
         if (grid.ContainsKey(targetGridPos))
             return;
         
         DoorDirection requiredWorldDirection = doorwayForEnd.GetOppositeDirection();
-        
+
         List<int> rotations = allowRoomRotation ? 
             new List<int> { 0, 90, 180, 270 } : 
             new List<int> { 0 };
@@ -329,10 +343,11 @@ public class LevelGenerator : MonoBehaviour
         d2.isConnected = true;
         d2.connectedTo = d1;
     }
-
+    
     void SealDoorway(DoorwayInstance doorway)
     {
         doorway.isConnected = true;
+        // TODO
     }
     
     bool HasDoorInDirection(RoomData roomData, DoorDirection direction)

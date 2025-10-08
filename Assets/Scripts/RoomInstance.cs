@@ -7,6 +7,7 @@ public class RoomInstance
     public GameObject roomObject;
     public Vector2Int gridPosition;
     public int rotation; // 0, 90, 180, 270 degrees
+    public Vector3 positionOffset;
     public Dictionary<DoorDirection, DoorwayInstance> doorways;
     public int distanceFromStart;
     
@@ -15,6 +16,7 @@ public class RoomInstance
         roomData = data;
         gridPosition = gridPos;
         rotation = rot;
+        positionOffset = Vector3.zero;
         distanceFromStart = distance;
         doorways = new Dictionary<DoorDirection, DoorwayInstance>();
         
@@ -28,7 +30,8 @@ public class RoomInstance
     
     public Vector3 GetWorldPosition(float gridCellSize)
     {
-        return new Vector3(gridPosition.x * gridCellSize, 0, gridPosition.y * gridCellSize);
+        Vector3 basePos = new Vector3(gridPosition.x * gridCellSize, 0, gridPosition.y * gridCellSize);
+        return basePos + positionOffset;
     }
     
     public Quaternion GetWorldRotation()
