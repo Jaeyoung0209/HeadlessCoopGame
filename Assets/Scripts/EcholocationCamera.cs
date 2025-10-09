@@ -23,7 +23,7 @@ public class EcholocationCamera : MonoBehaviour
     void Update()
     {
         // Start new ripple
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.E))
         {
             if (spheres.Count < maxSpheres)
                 spheres.Add(new Sphere(scanOrigin.position));
