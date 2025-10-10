@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.RenderGraphModule;
 
 public class DrawTargetObjectFeature : ScriptableRendererFeature
 {
@@ -8,33 +9,43 @@ public class DrawTargetObjectFeature : ScriptableRendererFeature
     {
         public Renderer targetRenderer;
         public Material overrideMaterial;
+        
+        private class PassData
+        {
+            public Renderer renderer;
+            public Material material;
+        }
 
-        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
             if (targetRenderer == null || overrideMaterial == null) return;
 
-            CommandBuffer cmd = CommandBufferPool.Get("DrawTargetObject");
-
-            var drawSettings = new DrawingSettings(new ShaderTagId("UniversalForward"), new SortingSettings(renderingData.cameraData.camera))
+            using (var builder = renderGraph.AddRasterRenderPass<PassData>("Draw Target Object", out var passData))
             {
-                perObjectData = PerObjectData.None,
-            };
-            drawSettings.overrideMaterial = overrideMaterial;
+                passData.renderer = targetRenderer;
+                passData.material = overrideMaterial;
 
-            var filterSettings = new FilteringSettings(RenderQueueRange.all);
+                UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+                UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
 
-            // Draw only the target renderer
-            cmd.DrawRenderer(targetRenderer, overrideMaterial);
+                builder.SetRenderAttachment(resourceData.activeColorTexture, 0);
+                builder.SetRenderAttachmentDepth(resourceData.activeDepthTexture);
 
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
+                builder.AllowPassCulling(false);
+
+                builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
+                {
+                    if (data.renderer == null || data.material == null) return;
+
+                    context.cmd.DrawRenderer(data.renderer, data.material);
+                });
+            }
         }
     }
 
     public Renderer targetRenderer;
     public Material overrideMaterial;
-
-    DrawTargetObjectPass _pass;
+    private DrawTargetObjectPass _pass;
 
     public override void Create()
     {
