@@ -8,14 +8,17 @@ using UnityEngine;
 public class PlayerMovement : NetworkBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
+    private Vector3 moveDirection;
     [SerializeField] private float mouseSensitivity = 100f;
 
     [SerializeField] private Transform verticalRotator = null;
     [SerializeField] private float rotationSpeed = 0.1f;
     [SerializeField] private float rotationCatchUpSpeed = 1f;
+    [SerializeField] private float maxChestTwist = 45f;
+    [SerializeField] private float maxCatchUpSpeed = 5f;
 
     private readonly SyncVar<float> targetYRotation = new SyncVar<float>();
-    private float localTargetYRotation; // Client-side immediate rotation
+    private float predictedYRotation; // Client-side immediate rotation
     private float smoothedYRotation; // Visual smoothed rotation
 
     [SerializeField] private Transform groundCheck = null;
@@ -52,9 +55,9 @@ public class PlayerMovement : NetworkBehaviour
             verticalRotation_x -= 360;
         }
 
-        localTargetYRotation = transform.rotation.eulerAngles.y;
-        smoothedYRotation = localTargetYRotation;
-        targetYRotation.Value = localTargetYRotation;
+        predictedYRotation = transform.rotation.eulerAngles.y;
+        smoothedYRotation = predictedYRotation;
+        targetYRotation.Value = predictedYRotation;
     }
 
     void Update()
@@ -65,15 +68,15 @@ public class PlayerMovement : NetworkBehaviour
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
 
-        Vector3 moveDirection = new Vector3(horizontal, 0f, vertical);
-        moveDirection = transform.rotation * moveDirection;
+        moveDirection = new Vector3(horizontal, 0, vertical);
+        Debug.Log(moveDirection);
 
         animator.SetFloat("MoveX", horizontal);
         animator.SetFloat("MoveY", vertical);
         if (moveDirection.magnitude > 1f)
             moveDirection.Normalize();
 
-        transform.position += moveSpeed * Time.deltaTime * moveDirection;
+        // transform.position += moveSpeed * Time.deltaTime * moveDirection;
 
         isGrounded = Physics.CheckSphere(groundCheck.position, groundRadius, groundLayer);
         animator.SetBool("isGrounded", isGrounded);
@@ -86,7 +89,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (Mathf.Abs(mouseX) > 0.01f)
         {
-            localTargetYRotation += mouseX;
+            predictedYRotation += mouseX;
         }
 
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * 0.01f;
@@ -95,20 +98,26 @@ public class PlayerMovement : NetworkBehaviour
         verticalRotator.localRotation = Quaternion.Euler(verticalRotation_x, 0f, 0f);
     }
 
+    private void FixedUpdate()
+    {
+        if (!IsOwner)
+            return;
+
+        Vector3 worldMove = transform.rotation * moveDirection * moveSpeed * Time.fixedDeltaTime;
+        
+        rb.MovePosition(rb.position + worldMove);
+    }
+
     private void LateUpdate()
     {
         if (IsOwner)
         {
+            smoothedYRotation = Mathf.LerpAngle(smoothedYRotation, predictedYRotation, Time.deltaTime * interpolationSpeed);
+
             if (Time.time - lastSyncTime >= syncInterval)
             {
-                smoothedYRotation = Mathf.LerpAngle(smoothedYRotation, localTargetYRotation, Time.deltaTime * interpolationSpeed * (1f / syncInterval));
-                
                 ServerSetTargetYRotation(smoothedYRotation);
                 lastSyncTime = Time.time;
-            }
-            else
-            {
-                smoothedYRotation = Mathf.LerpAngle(smoothedYRotation, localTargetYRotation, Time.deltaTime * interpolationSpeed);
             }
         }
         else
@@ -118,9 +127,22 @@ public class PlayerMovement : NetworkBehaviour
 
         Quaternion bodyRotation = Quaternion.Euler(0, smoothedYRotation, 0);
 
-        transform.rotation = Quaternion.Slerp(transform.rotation, bodyRotation, Time.deltaTime * rotationCatchUpSpeed);
-
         Quaternion chestTwist = Quaternion.Inverse(transform.rotation) * bodyRotation;
+        
+        float twistAngle = chestTwist.eulerAngles.y;
+        if (twistAngle > 180f)
+            twistAngle -= 360f;
+        
+        float currentCatchUpSpeed = rotationCatchUpSpeed;
+        if (Mathf.Abs(twistAngle) > maxChestTwist)
+        {
+            float excessTwist = Mathf.Abs(twistAngle) - maxChestTwist;
+            currentCatchUpSpeed = Mathf.Lerp(rotationCatchUpSpeed, maxCatchUpSpeed, excessTwist / 90f);
+        }
+        
+        transform.rotation = Quaternion.Slerp(transform.rotation, bodyRotation, Time.deltaTime * currentCatchUpSpeed);
+
+        chestTwist = Quaternion.Inverse(transform.rotation) * bodyRotation;
         chestBone.localRotation = chestTwist;
     }
 
