@@ -506,7 +506,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4da1c9f03a0b28845b817d4184cebd5c, type: 2}
   smallRoomData: []
   endRoomData: {fileID: 11400000, guid: 7dbff770d77f24c42adfacecf9e3d650, type: 2}
-  gridCellSize: 40
+  gridCellSize: 50
   smallRoomChance: 0.6
   maxConsecutiveSmallRooms: 2
   continueChainChance: 0.3
