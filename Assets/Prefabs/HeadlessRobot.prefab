@@ -575,9 +575,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3694578203429862123}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.060143363, y: -0.5715008, z: 0.5207977, w: -0.63129973}
-  m_LocalPosition: {x: -0.22666477, y: 0.21395597, z: 0.26096156}
-  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5949634224164307753}
@@ -585,7 +585,7 @@ Transform:
   - {fileID: 6835463016602602620}
   - {fileID: 7947357704457595753}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 31.288, y: -293.411, z: -58.201}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &1567450561023836810
 Animator:
   serializedVersion: 7
@@ -644,7 +644,7 @@ MonoBehaviour:
   leftHandIK: {fileID: 2473128821076169028}
   rightHandGripTarget: {fileID: 3820269923662063636}
   leftHandGripTarget: {fileID: 3490422797525453784}
-  pickupRange: 0.3
+  pickupRange: 1.2
   objectLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -770,7 +770,7 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 7702935616652708478}
   _networkObjectCache: {fileID: 7702935616652708478}
-  moveSpeed: 1
+  moveSpeed: 4
   mouseSensitivity: 300
   verticalRotator: {fileID: 3530467089387896848}
   rotationSpeed: 0.01
@@ -1484,7 +1484,7 @@ Transform:
   m_GameObject: {fileID: 7408188919662381352}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -9.3677954e-11, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.3}
   m_LocalScale: {x: 0.25, y: 0.24999997, z: 0.24999997}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1503,7 +1503,7 @@ Light:
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 3
   m_Range: 10
-  m_SpotAngle: 35.682537
+  m_SpotAngle: 69.50931
   m_InnerSpotAngle: 27.48462
   m_CookieSize: 10
   m_Shadows:

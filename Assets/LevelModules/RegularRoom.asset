@@ -15,7 +15,7 @@ MonoBehaviour:
   roomName: RegularRoom
   roomSize: 0
   roomPrefab: {fileID: 6269509395373026524, guid: f713de665c99f3e4cbd06caef86a53fa, type: 3}
-  roomDimensions: {x: 4, y: 4}
+  roomDimensions: {x: 10, y: 10}
   northDoorOffset: 0
   southDoorOffset: 0
   eastDoorOffset: 0

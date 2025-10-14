@@ -20,7 +20,7 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.01886791, g: 0.01886791, b: 0.01886791, a: 1}
+  m_AmbientSkyColor: {r: 0.2924528, g: 0.28555533, b: 0.28555533, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
@@ -136,7 +136,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!108 &410087040
 Light:
   m_ObjectHideFlags: 0
@@ -338,15 +338,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6619001335099626600, guid: b1984404ae82fa74fbf9c4427cbc1825, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.25
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6619001335099626600, guid: b1984404ae82fa74fbf9c4427cbc1825, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.25
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6619001335099626600, guid: b1984404ae82fa74fbf9c4427cbc1825, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.25
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6619001335099626600, guid: b1984404ae82fa74fbf9c4427cbc1825, type: 3}
       propertyPath: m_LocalPosition.x
@@ -354,7 +354,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6619001335099626600, guid: b1984404ae82fa74fbf9c4427cbc1825, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.13
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6619001335099626600, guid: b1984404ae82fa74fbf9c4427cbc1825, type: 3}
       propertyPath: m_LocalPosition.z
@@ -504,10 +504,9 @@ MonoBehaviour:
   startRoomData: {fileID: 11400000, guid: 3934a1d6c8486464589bf42ae592c0ec, type: 2}
   bigRoomData:
   - {fileID: 11400000, guid: 4da1c9f03a0b28845b817d4184cebd5c, type: 2}
-  smallRoomData:
-  - {fileID: 11400000, guid: 311474e1d60c43348898cbf7e15aff42, type: 2}
+  smallRoomData: []
   endRoomData: {fileID: 11400000, guid: 7dbff770d77f24c42adfacecf9e3d650, type: 2}
-  gridCellSize: 4
+  gridCellSize: 40
   smallRoomChance: 0.6
   maxConsecutiveSmallRooms: 2
   continueChainChance: 0.3
