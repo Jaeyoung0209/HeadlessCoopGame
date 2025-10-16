@@ -6,6 +6,7 @@ Added some environment assets and a flashlight for the player. Testing out diffe
 Wool? Fabric?
 
 https://github.com/user-attachments/assets/07b1214d-fce8-4552-bc3a-bb5482dbdc18
+
 (looks weird with the edge detection post processing because of normal map)
 
 
