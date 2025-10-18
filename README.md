@@ -5,13 +5,17 @@
 Added some environment assets and a flashlight for the player. Testing out different textures.
 Wool? Fabric?
 
-https://github.com/user-attachments/assets/39228e3c-5047-4bae-a6ac-9a0d98ac1425
+https://github.com/user-attachments/assets/07b1214d-fce8-4552-bc3a-bb5482dbdc18
+
+(looks weird with the edge detection post processing because of normal map)
 
 
 Cardboard
 
-https://github.com/user-attachments/assets/9dee1948-bc78-4f25-85d3-f710c246ae51
+https://github.com/user-attachments/assets/f63b3649-faf4-4a71-9c5a-e3dc5f9e44ed
+
 
 Concrete
 
-https://github.com/user-attachments/assets/553e2a81-2071-4a35-9dcf-b6ba4ef4f2cf
+https://github.com/user-attachments/assets/8a078f28-a476-42c4-befa-5a063982a18f
+
