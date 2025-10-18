@@ -1,7 +1,7 @@
-using UnityEngine;
+using FishNet.Managing;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
-using FishNet.Managing;
+using UnityEngine;
 
 public class LiftableObject : NetworkBehaviour
 {
@@ -49,7 +49,6 @@ public class LiftableObject : NetworkBehaviour
         rb.position = dropPosition;
     }
 
-
     [ServerRpc(RequireOwnership = false)]
     public void PickupServerRpc(int playerId, GameObject handTransform)
     {
@@ -74,19 +73,28 @@ public class LiftableObject : NetworkBehaviour
         DropObserversRpc(dropPosition);
     }
 
-
     [ObserversRpc]
-        private void PickupObserversRpc(int playerId, int handTransformId)
-        {
+    private void PickupObserversRpc(int playerId, int handTransformId)
+    {
         NetworkObject handNo = null;
 
         // First try client-side lookup
-        if (NetworkManager.ClientManager.Objects.Spawned.TryGetValue(handTransformId, out var clientObj))
+        if (
+            NetworkManager.ClientManager.Objects.Spawned.TryGetValue(
+                handTransformId,
+                out var clientObj
+            )
+        )
         {
             handNo = clientObj;
         }
         // Fallback to server-side lookup (in case host/server context)
-        else if (NetworkManager.ServerManager.Objects.Spawned.TryGetValue(handTransformId, out var serverObj))
+        else if (
+            NetworkManager.ServerManager.Objects.Spawned.TryGetValue(
+                handTransformId,
+                out var serverObj
+            )
+        )
         {
             handNo = serverObj;
         }
@@ -97,7 +105,9 @@ public class LiftableObject : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning($"[LiftableObject] Could not find NetworkObject with ID {handTransformId}");
+            Debug.LogWarning(
+                $"[LiftableObject] Could not find NetworkObject with ID {handTransformId}"
+            );
         }
     }
 

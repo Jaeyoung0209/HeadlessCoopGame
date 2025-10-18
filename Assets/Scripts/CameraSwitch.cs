@@ -4,12 +4,14 @@ using UnityEngine.UIElements;
 
 public class CameraSwitch : NetworkBehaviour
 {
-    [SerializeField] GameObject echolocationCamera;
+    [SerializeField]
+    GameObject echolocationCamera;
     public bool canSwitchCamera = true;
 
     void Update()
     {
-        if (!IsOwner) return;
+        if (!IsOwner)
+            return;
 
         if (Input.GetKeyDown(KeyCode.Tab) && canSwitchCamera == true)
         {
@@ -24,7 +26,8 @@ public class CameraSwitch : NetworkBehaviour
         }
     }
 
-    public void setToVisionCamera() {
+    public void setToVisionCamera()
+    {
         echolocationCamera.SetActive(false);
     }
 }

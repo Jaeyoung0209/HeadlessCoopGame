@@ -7,27 +7,46 @@ using UnityEngine;
 
 public class PlayerMovement : NetworkBehaviour
 {
-    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField]
+    private float moveSpeed = 5f;
     private Vector3 moveDirection;
-    [SerializeField] private float mouseSensitivity = 100f;
 
-    [SerializeField] private Transform verticalRotator = null;
-    [SerializeField] private float rotationSpeed = 0.1f;
-    [SerializeField] private float rotationCatchUpSpeed = 1f;
-    [SerializeField] private float maxChestTwist = 45f;
-    [SerializeField] private float maxCatchUpSpeed = 5f;
+    [SerializeField]
+    private float mouseSensitivity = 100f;
+
+    [SerializeField]
+    private Transform verticalRotator = null;
+
+    [SerializeField]
+    private float rotationSpeed = 0.1f;
+
+    [SerializeField]
+    private float rotationCatchUpSpeed = 1f;
+
+    [SerializeField]
+    private float maxChestTwist = 45f;
+
+    [SerializeField]
+    private float maxCatchUpSpeed = 5f;
 
     private readonly SyncVar<float> targetYRotation = new SyncVar<float>();
     private float predictedYRotation; // Client-side immediate rotation
     private float smoothedYRotation; // Visual smoothed rotation
 
-    [SerializeField] private Transform groundCheck = null;
-    [SerializeField] private float jumpForce = 5f;
+    [SerializeField]
+    private Transform groundCheck = null;
 
-    [SerializeField] private float groundRadius = 0.2f;
-    [SerializeField] private LayerMask groundLayer;
+    [SerializeField]
+    private float jumpForce = 5f;
 
-    [SerializeField] private Transform chestBone = null; 
+    [SerializeField]
+    private float groundRadius = 0.2f;
+
+    [SerializeField]
+    private LayerMask groundLayer;
+
+    [SerializeField]
+    private Transform chestBone = null;
 
     private Animator animator;
     private NetworkAnimator netAnimator;
@@ -37,8 +56,11 @@ public class PlayerMovement : NetworkBehaviour
 
     private float verticalRotation_x = 0;
 
-    [SerializeField] private float interpolationSpeed = 15f;
-    [SerializeField] private float syncInterval = 0.05f;
+    [SerializeField]
+    private float interpolationSpeed = 15f;
+
+    [SerializeField]
+    private float syncInterval = 0.05f;
     private float lastSyncTime = 0f;
 
     public override void OnStartClient()
@@ -104,7 +126,7 @@ public class PlayerMovement : NetworkBehaviour
             return;
 
         Vector3 worldMove = transform.rotation * moveDirection * moveSpeed * Time.fixedDeltaTime;
-        
+
         rb.MovePosition(rb.position + worldMove);
     }
 
@@ -112,7 +134,11 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (IsOwner)
         {
-            smoothedYRotation = Mathf.LerpAngle(smoothedYRotation, predictedYRotation, Time.deltaTime * interpolationSpeed);
+            smoothedYRotation = Mathf.LerpAngle(
+                smoothedYRotation,
+                predictedYRotation,
+                Time.deltaTime * interpolationSpeed
+            );
 
             if (Time.time - lastSyncTime >= syncInterval)
             {
@@ -122,25 +148,37 @@ public class PlayerMovement : NetworkBehaviour
         }
         else
         {
-            smoothedYRotation = Mathf.LerpAngle(smoothedYRotation, targetYRotation.Value, Time.deltaTime * interpolationSpeed);
+            smoothedYRotation = Mathf.LerpAngle(
+                smoothedYRotation,
+                targetYRotation.Value,
+                Time.deltaTime * interpolationSpeed
+            );
         }
 
         Quaternion bodyRotation = Quaternion.Euler(0, smoothedYRotation, 0);
 
         Quaternion chestTwist = Quaternion.Inverse(transform.rotation) * bodyRotation;
-        
+
         float twistAngle = chestTwist.eulerAngles.y;
         if (twistAngle > 180f)
             twistAngle -= 360f;
-        
+
         float currentCatchUpSpeed = rotationCatchUpSpeed;
         if (Mathf.Abs(twistAngle) > maxChestTwist)
         {
             float excessTwist = Mathf.Abs(twistAngle) - maxChestTwist;
-            currentCatchUpSpeed = Mathf.Lerp(rotationCatchUpSpeed, maxCatchUpSpeed, excessTwist / 90f);
+            currentCatchUpSpeed = Mathf.Lerp(
+                rotationCatchUpSpeed,
+                maxCatchUpSpeed,
+                excessTwist / 90f
+            );
         }
-        
-        transform.rotation = Quaternion.Slerp(transform.rotation, bodyRotation, Time.deltaTime * currentCatchUpSpeed);
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            bodyRotation,
+            Time.deltaTime * currentCatchUpSpeed
+        );
 
         chestTwist = Quaternion.Inverse(transform.rotation) * bodyRotation;
         chestBone.localRotation = chestTwist;

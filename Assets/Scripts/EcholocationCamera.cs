@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class EcholocationCamera : MonoBehaviour
 {
@@ -14,7 +14,12 @@ public class EcholocationCamera : MonoBehaviour
     {
         public Vector3 center;
         public float radius;
-        public Sphere(Vector3 c) { center = c; radius = 0; }
+
+        public Sphere(Vector3 c)
+        {
+            center = c;
+            radius = 0;
+        }
     }
 
     private List<Sphere> spheres = new List<Sphere>();

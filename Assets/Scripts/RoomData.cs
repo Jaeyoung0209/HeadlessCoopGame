@@ -9,7 +9,7 @@ public class RoomData : ScriptableObject
     public GameObject roomPrefab;
 
     public Vector2 roomDimensions = new Vector2(10f, 10f); // Width (X) and Depth (Z) in Unity units
-    
+
     public float northDoorOffset = 0f;
     public float southDoorOffset = 0f;
     public float eastDoorOffset = 0f;
@@ -29,39 +29,47 @@ public class RoomData : ScriptableObject
     public List<DoorDirection> GetAvailableDoors()
     {
         List<DoorDirection> doors = new List<DoorDirection>();
-        if (hasNorthDoor) doors.Add(DoorDirection.North);
-        if (hasEastDoor) doors.Add(DoorDirection.East);
-        if (hasSouthDoor) doors.Add(DoorDirection.South);
-        if (hasWestDoor) doors.Add(DoorDirection.West);
+        if (hasNorthDoor)
+            doors.Add(DoorDirection.North);
+        if (hasEastDoor)
+            doors.Add(DoorDirection.East);
+        if (hasSouthDoor)
+            doors.Add(DoorDirection.South);
+        if (hasWestDoor)
+            doors.Add(DoorDirection.West);
         return doors;
     }
-    
+
     public int GetDoorCount()
     {
         int count = 0;
-        if (hasNorthDoor) count++;
-        if (hasSouthDoor) count++;
-        if (hasEastDoor) count++;
-        if (hasWestDoor) count++;
+        if (hasNorthDoor)
+            count++;
+        if (hasSouthDoor)
+            count++;
+        if (hasEastDoor)
+            count++;
+        if (hasWestDoor)
+            count++;
         return count;
     }
-    
+
     public Vector3 GetDoorLocalPosition(DoorDirection direction)
     {
         float halfWidth = roomDimensions.x * 0.5f;
         float halfDepth = roomDimensions.y * 0.5f;
-        
+
         switch (direction)
         {
-            case DoorDirection.North: 
+            case DoorDirection.North:
                 return new Vector3(northDoorOffset, 0, halfDepth);
-            case DoorDirection.South: 
+            case DoorDirection.South:
                 return new Vector3(southDoorOffset, 0, -halfDepth);
-            case DoorDirection.East: 
+            case DoorDirection.East:
                 return new Vector3(halfWidth, 0, eastDoorOffset);
-            case DoorDirection.West: 
+            case DoorDirection.West:
                 return new Vector3(-halfWidth, 0, westDoorOffset);
-            default: 
+            default:
                 return Vector3.zero;
         }
     }
@@ -70,7 +78,7 @@ public class RoomData : ScriptableObject
 public enum RoomSize
 {
     Big,
-    Small
+    Small,
 }
 
 public enum DoorDirection
@@ -78,5 +86,5 @@ public enum DoorDirection
     North = 0,
     East = 90,
     South = 180,
-    West = 270
+    West = 270,
 }

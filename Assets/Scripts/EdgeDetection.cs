@@ -4,14 +4,15 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
-
 public class EdgeDetection : ScriptableRendererFeature
 {
     private class EdgeDetectionPass : ScriptableRenderPass
     {
         private Material material;
 
-        private static readonly int OutlineThicknessProperty = Shader.PropertyToID("_OutlineThickness");
+        private static readonly int OutlineThicknessProperty = Shader.PropertyToID(
+            "_OutlineThickness"
+        );
         private static readonly int OutlineColorProperty = Shader.PropertyToID("_OutlineColor");
 
         public EdgeDetectionPass()
@@ -28,9 +29,7 @@ public class EdgeDetection : ScriptableRendererFeature
             material.SetColor(OutlineColorProperty, settings.outlineColor);
         }
 
-        private class PassData
-        {
-        }
+        private class PassData { }
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
@@ -41,7 +40,12 @@ public class EdgeDetection : ScriptableRendererFeature
             builder.SetRenderAttachment(resourceData.activeColorTexture, 0);
             builder.UseAllGlobalTextures(true);
             builder.AllowPassCulling(false);
-            builder.SetRenderFunc((PassData _, RasterGraphContext context) => { Blitter.BlitTexture(context.cmd, Vector2.one, material, 0); });
+            builder.SetRenderFunc(
+                (PassData _, RasterGraphContext context) =>
+                {
+                    Blitter.BlitTexture(context.cmd, Vector2.one, material, 0);
+                }
+            );
         }
     }
 
@@ -49,11 +53,14 @@ public class EdgeDetection : ScriptableRendererFeature
     public class EdgeDetectionSettings
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
-        [Range(0, 15)] public int outlineThickness = 3;
+
+        [Range(0, 15)]
+        public int outlineThickness = 3;
         public Color outlineColor = Color.black;
     }
 
-    [SerializeField] private EdgeDetectionSettings settings;
+    [SerializeField]
+    private EdgeDetectionSettings settings;
     private Material edgeDetectionMaterial;
     private EdgeDetectionPass edgeDetectionPass;
 
@@ -72,25 +79,38 @@ public class EdgeDetection : ScriptableRendererFeature
     /// Called
     /// - Every frame, once for each camera.
     /// </summary>
-    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+    public override void AddRenderPasses(
+        ScriptableRenderer renderer,
+        ref RenderingData renderingData
+    )
     {
         // Don't render for some views.
-        if (renderingData.cameraData.cameraType == CameraType.Preview
+        if (
+            renderingData.cameraData.cameraType == CameraType.Preview
             || renderingData.cameraData.cameraType == CameraType.Reflection
-            || UniversalRenderer.IsOffscreenDepthTexture(ref renderingData.cameraData))
+            || UniversalRenderer.IsOffscreenDepthTexture(ref renderingData.cameraData)
+        )
             return;
-        
+
         if (edgeDetectionMaterial == null)
         {
-            edgeDetectionMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Custom/Edge Detection"));
+            edgeDetectionMaterial = CoreUtils.CreateEngineMaterial(
+                Shader.Find("Custom/Edge Detection")
+            );
             if (edgeDetectionMaterial == null)
             {
-                Debug.LogWarning("Not all required materials could be created. Edge Detection will not render.");
+                Debug.LogWarning(
+                    "Not all required materials could be created. Edge Detection will not render."
+                );
                 return;
             }
         }
 
-        edgeDetectionPass.ConfigureInput(ScriptableRenderPassInput.Depth | ScriptableRenderPassInput.Normal | ScriptableRenderPassInput.Color);
+        edgeDetectionPass.ConfigureInput(
+            ScriptableRenderPassInput.Depth
+                | ScriptableRenderPassInput.Normal
+                | ScriptableRenderPassInput.Color
+        );
         edgeDetectionPass.requiresIntermediateTexture = true;
         edgeDetectionPass.Setup(ref settings, ref edgeDetectionMaterial);
 
