@@ -125,7 +125,7 @@ Material:
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
-    - _SphereCount: 1
+    - _SphereCount: 0
     - _SphereRadii: 1
     - _SphereRadius: 10.008705
     - _SrcBlend: 1
