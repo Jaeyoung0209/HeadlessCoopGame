@@ -35,7 +35,7 @@ public class EdgeDetection : ScriptableRendererFeature
         {
             var resourceData = frameData.Get<UniversalResourceData>();
 
-            using var builder = renderGraph.AddRasterRenderPass<PassData>("Edge Detection", out _);
+            using var builder = renderGraph.AddRasterRenderPass<PassData>("MangaOutline", out _);
 
             builder.SetRenderAttachment(resourceData.activeColorTexture, 0);
             builder.UseAllGlobalTextures(true);
@@ -95,7 +95,7 @@ public class EdgeDetection : ScriptableRendererFeature
         if (edgeDetectionMaterial == null)
         {
             edgeDetectionMaterial = CoreUtils.CreateEngineMaterial(
-                Shader.Find("Custom/Edge Detection")
+                Shader.Find("Custom/MangaOutline")
             );
             if (edgeDetectionMaterial == null)
             {

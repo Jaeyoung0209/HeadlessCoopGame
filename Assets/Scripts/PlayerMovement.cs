@@ -91,7 +91,6 @@ public class PlayerMovement : NetworkBehaviour
         float vertical = Input.GetAxis("Vertical");
 
         moveDirection = new Vector3(horizontal, 0, vertical);
-        Debug.Log(moveDirection);
 
         animator.SetFloat("MoveX", horizontal);
         animator.SetFloat("MoveY", vertical);

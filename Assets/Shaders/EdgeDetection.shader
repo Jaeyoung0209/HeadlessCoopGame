@@ -1,114 +1,93 @@
-Shader "Custom/Edge Detection"
+Shader "Custom/MangaOutline"
 {
     Properties
     {
-        _OutlineThickness ("Outline Thickness", Float) = 1
-        _OutlineColor ("Outline Color", Color) = (0, 0, 0, 1)
+        _OutlineThickness ("Outline Thickness", Float) = 3.0
     }
 
     SubShader
     {
-        Tags
-        {
-            "RenderPipeline" = "UniversalPipeline"
-            "RenderType"="Opaque"
-        }
-
+        Tags { "RenderPipeline"="UniversalPipeline" "RenderType"="Transparent" }
         ZWrite Off
         Cull Off
         Blend SrcAlpha OneMinusSrcAlpha
 
         Pass 
         {
-            Name "EDGE DETECTION OUTLINE"
+            Name "MANGA OUTLINE"
             
             HLSLPROGRAM
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl" // needed to sample scene depth
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareNormalsTexture.hlsl" // needed to sample scene normals
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl" // needed to sample scene color/luminance
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareNormalsTexture.hlsl"
 
-            float _OutlineThickness;
-            float4 _OutlineColor;
-
-            #pragma vertex Vert // vertex shader is provided by the Blit.hlsl include
+            #pragma vertex Vert
             #pragma fragment frag
 
-            // Edge detection kernel that works by taking the sum of the squares of the differences between diagonally adjacent pixels (Roberts Cross).
-            float RobertsCross(float3 samples[4])
-            {
-                const float3 difference_1 = samples[1] - samples[2];
-                const float3 difference_2 = samples[0] - samples[3];
-                return sqrt(dot(difference_1, difference_1) + dot(difference_2, difference_2));
-            }
+            float _OutlineThickness;
 
-            // The same kernel logic as above, but for a single-value instead of a vector3.
-            float RobertsCross(float samples[4])
-            {
-                const float difference_1 = samples[1] - samples[2];
-                const float difference_2 = samples[0] - samples[3];
-                return sqrt(difference_1 * difference_1 + difference_2 * difference_2);
-            }
+            float rand2d(float2 co) { return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453); }
+            float value_noise(float2 uv) { float2 i = floor(uv); float2 f = frac(uv); f = smoothstep(0.0, 1.0, f); float bl = rand2d(i), br = rand2d(i + float2(1,0)); float tl = rand2d(i + float2(0,1)), tr = rand2d(i + float2(1,1)); return lerp(lerp(bl, br, f.x), lerp(tl, tr, f.x), f.y); }
+            float fbm(float2 uv) { float t = 0.0, a = 0.5; t += value_noise(uv) * a; uv *= 2.0; a *= 0.5; t += value_noise(uv) * a; return t; }
+
+            float3 DecodeNormal(float4 enc) { float2 f = enc.xy * 2.0 - 1.0; float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y)); float t = saturate(-n.z); n.xy += (n.xy >= 0.0 ? -t : t); return normalize(n); }
             
-            // Helper function to sample scene normals remapped from [-1, 1] range to [0, 1].
-            float3 SampleSceneNormalsRemapped(float2 uv)
+            float SobelDepth(float2 uv, float2 texel_size, float thickness)
             {
-                return SampleSceneNormals(uv) * 0.5 + 0.5;
+                float s00 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2(-1, -1) * thickness).r;
+                float s10 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2( 0, -1) * thickness).r;
+                float s20 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2( 1, -1) * thickness).r;
+                float s01 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2(-1,  0) * thickness).r;
+                float s21 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2( 1,  0) * thickness).r;
+                float s02 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2(-1,  1) * thickness).r;
+                float s12 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2( 0,  1) * thickness).r;
+                float s22 = _CameraDepthTexture.Sample(sampler_CameraDepthTexture, uv + texel_size * float2( 1,  1) * thickness).r;
+                float gx = s00 + 2*s01 + s02 - (s20 + 2*s21 + s22);
+                float gy = s00 + 2*s10 + s20 - (s02 + 2*s12 + s22);
+                return sqrt(gx*gx + gy*gy);
             }
 
-            // Helper function to sample scene luminance.
-            float SampleSceneLuminance(float2 uv)
+            float SobelNormal(float2 uv, float2 texel_size, float thickness)
             {
-                float3 color = SampleSceneColor(uv);
-                return color.r * 0.3 + color.g * 0.59 + color.b * 0.11;
+                float3 n00 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2(-1, -1) * thickness));
+                float3 n10 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2( 0, -1) * thickness));
+                float3 n20 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2( 1, -1) * thickness));
+                float3 n01 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2(-1,  0) * thickness));
+                float3 n21 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2( 1,  0) * thickness));
+                float3 n02 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2(-1,  1) * thickness));
+                float3 n12 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2( 0,  1) * thickness));
+                float3 n22 = DecodeNormal(_CameraNormalsTexture.Sample(sampler_CameraNormalsTexture, uv + texel_size * float2( 1,  1) * thickness));
+                float3 gx = n00 + 2*n01 + n02 - (n20 + 2*n21 + n22);
+                float3 gy = n00 + 2*n10 + n20 - (n02 + 2*n12 + n22);
+                return sqrt(dot(gx, gx) + dot(gy, gy));
             }
 
             half4 frag(Varyings IN) : SV_TARGET
             {
-                // Screen-space coordinates which we will use to sample.
+                half4 _OutlineColor = half4(0.02, 0.02, 0.02, 1.0);
+                float _LineDistortion = 2.0;
+                float _NoiseScale = 150.0;
+                float _DepthThreshold = 0.005;
+                float _NormalThreshold = 0.8;
+
                 float2 uv = IN.texcoord;
                 float2 texel_size = float2(1.0 / _ScreenParams.x, 1.0 / _ScreenParams.y);
                 
-                // Generate 4 diagonally placed samples.
-                const float half_width_f = floor(_OutlineThickness * 0.5);
-                const float half_width_c = ceil(_OutlineThickness * 0.5);
+                float noise = fbm(uv * _NoiseScale);
+                float2 distortion_offset = float2(noise, fbm(uv * _NoiseScale + 0.5)) * 2.0 - 1.0;
+                distortion_offset *= _LineDistortion * texel_size;
+                float2 distorted_uv = uv + distortion_offset;
+                
+                float edge_depth = SobelDepth(distorted_uv, texel_size, _OutlineThickness);
+                float edge_normal = SobelNormal(distorted_uv, texel_size, _OutlineThickness);
+                
+                edge_depth = edge_depth > _DepthThreshold ? 1 : 0;
+                edge_normal = edge_normal > _NormalThreshold ? 1 : 0;
 
-                float2 uvs[4];
-                uvs[0] = uv + texel_size * float2(half_width_f, half_width_c) * float2(-1, 1);  // top left
-                uvs[1] = uv + texel_size * float2(half_width_c, half_width_c) * float2(1, 1);   // top right
-                uvs[2] = uv + texel_size * float2(half_width_f, half_width_f) * float2(-1, -1); // bottom left
-                uvs[3] = uv + texel_size * float2(half_width_c, half_width_f) * float2(1, -1);  // bottom right
+                float edge = max(edge_depth, edge_normal);
                 
-                float3 normal_samples[4];
-                float depth_samples[4], luminance_samples[4];
-                
-                for (int i = 0; i < 4; i++) {
-                    depth_samples[i] = SampleSceneDepth(uvs[i]);
-                    normal_samples[i] = SampleSceneNormalsRemapped(uvs[i]);
-                    luminance_samples[i] = SampleSceneLuminance(uvs[i]);
-                }
-                
-                // Apply edge detection kernel on the samples to compute edges.
-                float edge_depth = RobertsCross(depth_samples);
-                float edge_normal = RobertsCross(normal_samples);
-                float edge_luminance = RobertsCross(luminance_samples);
-                
-                // Threshold the edges (discontinuity must be above certain threshold to be counted as an edge). The sensitivities are hardcoded here.
-                float depth_threshold = 1 / 200.0f;
-                edge_depth = edge_depth > depth_threshold ? 1 : 0;
-                
-                float normal_threshold = 1 / 4.0f;
-                edge_normal = edge_normal > normal_threshold ? 1 : 0;
-                
-                float luminance_threshold = 1 / 0.5f;
-                edge_luminance = edge_luminance > luminance_threshold ? 1 : 0;
-                
-                // Combine the edges from depth/normals/luminance using the max operator.
-                float edge = max(edge_depth, max(edge_normal, edge_luminance));
-                
-                // Color the edge with a custom color.
-                return edge * _OutlineColor;
+                return half4(_OutlineColor.rgb, _OutlineColor.a * edge);
             }
             ENDHLSL
         }
