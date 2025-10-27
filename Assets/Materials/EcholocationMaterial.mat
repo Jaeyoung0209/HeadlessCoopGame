@@ -125,13 +125,13 @@ Material:
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
-    - _SphereCount: 2
+    - _SphereCount: 1
     - _SphereRadii: 1
     - _SphereRadius: 10.008705
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
-    - _Threshold: 1
+    - _Threshold: 0.03
     - _UVSec: 0
     - _WorkflowMode: 1
     - _ZWrite: 1
